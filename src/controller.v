@@ -5,7 +5,11 @@
  * output: RegSrc1, RegSrc2, RegDest, MEMWBdata, EXALUOp, PCSrc,
  * sign_extend_imm, MEMMemRd, MEMMemWr, MEMSignExtendMemData, EXALUSrc, EXMemDataIn, 
  * WBRegWr, EXRegWr, MEMRegWr, EXMemRd, EXMemWr, DMemWr, killF
- */
+ */	 
+ 
+`include "opcodes.v"
+`include "fun_codes.v"
+
 module controller(input        clk, reset,
 				input  [3:0] opcode,
 				input [2:0] functionCode,
