@@ -10,27 +10,26 @@
 module datapath(input  clk, reset,
 				input  [2:0] EXALUOp,
 				input  [1:0] RegSrc2, PCSrc,
-				input sign_extend_imm, RegSrc1,MEMSignExtendMemData, RegDest,MEMWBdata, EXALUSrc, EXMemDataIn,
-    			input WBRegWr, EXRegWr, MEMRegWr, DMemWr, EXMemRd, EXMemWr, MEMMemRd, MEMMemWr, killF, PCsrcJType, RRSrc, NOOP, CntInst, ALUInst, BRANCH_OR_FOR,
+				input sign_extend_imm, RegSrc1, RegDest,MEMWBdata, EXALUSrc, EXMemDataIn,
+    			input WBRegWr, EXRegWr, MEMRegWr, DMemWr, EXMemRd, EXMemWr, MEMMemRd, MEMMemWr, killF, PCsrcJType, RRSrc, NOOP, CntInst, ALUInst, BRANCH_OR_FOR, 
+				input  [15:0] DataOut,
+				input  [15:0] instrF, 
                 output	Z, stall,
                 output [15:0] instrAddrF,
-                input  [15:0] instrF, 
                 output [15:0] DataInM, ALUOutM,
-                input  [15:0] DataOut, 
                 output [3:0]  Opcode,
 				output [2:0] Function
 				);
 										
 	// wires in the fetch stage				
 	wire [15:0] PCPlus1F, branchAddr, selectedInstruction;
-	//wire [15:0] untakenBranchPC;
 	wire [15:0] JtypeMuxOutput,NoOpMuxOutput;
 	wire [15:0] PCNext;
 	// wires in the decode stage
 	wire [1:0] ForwardBus1, ForwardBus2;
 	wire ForwardME, StoreALUOpFw, StoreDataInFw;
 	wire [2:0] RegSrc1D, RegSrc2D, RegDestD;
-	wire [15:0] Bus1D, Bus2D, SubOut, instrAddrD, PCPlus1D, RROutput, BranchOrForMuxOutput;
+	wire [15:0] Bus1D, Bus2D, SubOut, instrAddrD, PCPlus1D, RROutput,RRSelectOutput, BranchOrForMuxOutput;
 	wire [15:0] ForwardedData1, ForwardedData2, extendedImmediateD, extendedImmediateS, instrD;	
 	wire [15:0] CntrlInstCount, AluInstCount, NumOfInstExec, CyclesCount, StallCyclesCount, LoadInstCount, StoreInstCount;	 
 	wire [15:0] CntrlInstCountInput, AluInstCountInput, NumOfInstExecInput, CyclesCountInput, StallCyclesCountInput, LoadInstCountInput, StoreInstCountInput;
@@ -63,8 +62,8 @@ module datapath(input  clk, reset,
 	mux4 PCinput(NoOpMuxOutput,branchAddr, Bus2D, JtypeMuxOutput , PCSrc, PCNext);	 
 	flopenr #(16) PC(clk, reset, ~stall, PCNext, instrAddrF);	// PC register
 	adder       pcadd1(instrAddrF, 16'b0000000000000001, PCPlus1F); // adder to increment PC address
-	mux2 #(16) fetchedInstructionSelector(instrF, 16'b0000000000000000, killF, selectedInstruction); //	instrF is the output of the IMEM
-
+	mux2 #(16) fetchedInstructionSelector(instrF, 16'b0000000000000000, killF, selectedInstruction); //	instrF is the output of the IMEM  
+	
 	
 	// IF/ID Buffers
 	flopenr #(16) PCBufferF(clk, reset, ~stall, instrAddrF, instrAddrD);	// PC Buffer
@@ -93,7 +92,11 @@ module datapath(input  clk, reset,
 	
 	mux2 #(16) BranchOrForMux(ForwardedData2, 16'b0000000000000001, BRANCH_OR_FOR, BranchOrForMuxOutput);
 	
-	subtractor sb(ForwardedData1, BranchOrForMuxOutput, Z, SubOut);
+	subtractor sb(ForwardedData1, BranchOrForMuxOutput, Z, SubOut);	 
+	
+	//RR implementation
+	mux2 #(16) RRSelect(RROutput, instrAddrD,RRSrc, RRSelectOutput);
+	flopr #(1)  CntrlInstCountBuffer(clk, reset, RRSelectOutput, RROutput);	
 	
 	//Special Purpose Regirsters  
 	adder       CntrlInstCountAddr(CntrlInstCount, CntInst, CntrlInstCountInput); 
@@ -143,8 +146,7 @@ module datapath(input  clk, reset,
 	
 	// Memory Stage Logic
 	
-	signext #(8) MemDataExtender(DataOut[7:0], MEMSignExtendMemData, extendedDataOut);
-	mux4 #(16) WBDataSelector(ALUOutM, DataOut,  MEMWBdata, WrittenDataM);
+	mux2 #(16) WBDataSelector(ALUOutM, DataOut,  MEMWBdata, WrittenDataM);
 	
 	// MEM/WB Buffers
 	
