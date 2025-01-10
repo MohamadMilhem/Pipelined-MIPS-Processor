@@ -31,11 +31,13 @@ module datapath(input  clk, reset,
 	wire ForwardME, StoreALUOpFw, StoreDataInFw;
 	wire [2:0] RegSrc1D, RegSrc2D, RegDestD;
 	wire [15:0] Bus1D, Bus2D, SubOut, instrAddrD, PCPlus1D, RROutput, BranchOrForMuxOutput;
-	wire [15:0] ForwardedData1, ForwardedData2, extendedImmediateD, extendedImmediateS, instrD;
+	wire [15:0] ForwardedData1, ForwardedData2, extendedImmediateD, extendedImmediateS, instrD;	
+	wire [15:0] CntrlInstCount, AluInstCount, NumOfInstExec, CyclesCount, StallCyclesCount, LoadInstCount, StoreInstCount;	 
+	wire [15:0] CntrlInstCountInput, AluInstCountInput, NumOfInstExecInput, CyclesCountInput, StallCyclesCountInput, LoadInstCountInput, StoreInstCountInput;
 	
 	// wires in the execute stage
 	wire EXForwardME,EXStoreALUOpFw, EXStoreDataInFw;
-	wire [2:0] RegDestE;
+	wire [2:0] RegDestE, storeALUOp1RegNo, storeMemInRegNo;
 	wire [15:0] ALUOutE, ALUIn1, ALUIn2, SelectedDataIn, DataInE, extendedImmediateE, instrAddrE,
 	Bus1E, Bus2E, PCPlus1E;
 	
@@ -49,11 +51,11 @@ module datapath(input  clk, reset,
 	wire [2:0] RegDestW;
 	
 	// hazard detection
-	hazard    h(RegDestE, RegDestM, RegDestW, RegSrc1D, RegSrc2D,
-	EXRegWr, MEMRegWr, EXMemRd, DMemWr,
+	hazard    h(RegDestE, RegDestM, RegDestW, RegSrc1D, RegSrc2D, storeALUOp1RegNo, storeMemInRegNo,
+	EXRegWr,WBRegWr, MEMRegWr, EXMemRd, DMemWr,EXMemWr, MEMMemRd, MEMMemWr, DMemWr,
 	ForwardME,
 	ForwardBus1, ForwardBus2, 
-	stall);
+	stall, StoreALUOpFw, StoreDataInFw);
 	
 	// Fetch stage logic
 	mux2 #(16) NoOpMux(PCPlus1D, PCNext, killF, NoOpMuxOutput);	 
@@ -67,7 +69,9 @@ module datapath(input  clk, reset,
 	// IF/ID Buffers
 	flopenr #(16) PCBufferF(clk, reset, ~stall, instrAddrF, instrAddrD);	// PC Buffer
 	flopenr #(16) PCPlusBufferF(clk, reset, ~stall, PCPlus1F, PCPlus1D);	// PC+2 Buffer
-	flopenr #(16) FetchedInstrBufferF(clk, reset, ~stall, selectedInstruction, instrD);	// Fetched Instruction Buffer
+	flopenr #(16) FetchedInstrBufferF(clk, reset, ~stall, selectedInstruction, instrD);	// Fetched Instruction Buffer	
+	
+	
 	
 	// Decode stage logic
 	assign Opcode = instrD[15:12];
@@ -82,7 +86,6 @@ module datapath(input  clk, reset,
 	mux4 #(16) ForwardBus2Selector(Bus2D, ALUOutE, WrittenDataM, WrittenDataW, ForwardBus2, ForwardedData2);
 	
 	
-	
 	signext #(6) itype_extender(instrD[5:0], sign_extend_imm, extendedImmediateD);
 	
 	
@@ -91,6 +94,28 @@ module datapath(input  clk, reset,
 	mux2 #(16) BranchOrForMux(ForwardedData2, 16'b0000000000000001, BRANCH_OR_FOR, BranchOrForMuxOutput);
 	
 	subtractor sb(ForwardedData1, BranchOrForMuxOutput, Z, SubOut);
+	
+	//Special Purpose Regirsters  
+	adder       CntrlInstCountAddr(CntrlInstCount, CntInst, CntrlInstCountInput); 
+	flopr #(1)  CntrlInstCountBuffer(clk, reset, CntrlInstCountInput, CntrlInstCount);	 
+	
+	adder       AluInstCountAddr(AluInstCount, ALUInst, AluInstCountInput); 
+	flopr #(1)  AluInstCountBuffer(clk, reset, AluInstCountInput, AluInstCount);
+	
+	adder       CyclesCountAddr(CyclesCount, 16'b0000000000000001, CyclesCountInput); 
+	flopr #(1)  CyclesCountBuffer(clk, reset, CyclesCountInput, CyclesCount);
+	
+	adder       NumOfInstExecAddr(NumOfInstExec, ~stall & ~killF , NumOfInstExecInput); 
+	flopr #(1)  NumOfInstExecBuffer(clk, reset, NumOfInstExecInput, NumOfInstExec);
+	
+	adder       StallCyclesCountAddr(StallCyclesCount, NOOP | stall, StallCyclesCountInput); 
+	flopr #(1)  StallCyclesCountBuffer(clk, reset, StallCyclesCountInput, StallCyclesCount);
+	
+	adder       LoadInstCountAddr(LoadInstCount, MEMMemRd, LoadInstCountInput); 
+	flopr #(1)  LoadInstCountBuffer(clk, reset, LoadInstCountInput, LoadInstCount);	 
+	
+	adder       StoreInstCountAddr(StoreInstCount, MEMMemWr, StoreInstCountInput); 
+	flopr #(1)  StoreInstCountBuffer(clk, reset, StoreInstCountInput, StoreInstCount);
 	
 	// ID/EX Buffers
 	flopr #(16) ImmBufferE(clk, reset, extendedImmediateD, extendedImmediateE);
@@ -101,6 +126,8 @@ module datapath(input  clk, reset,
 	flopr #(16) PCPlusBufferE(clk, reset, PCPlus1D, PCPlus1E);
 	flopr #(1)  StoreDataInFwBuffer(clk, reset, StoreDataInFw, EXStoreDataInFw);
 	flopr #(1)  StoreALUOpFwBuffer(clk, reset, StoreALUOpFw, EXStoreALUOpFw);
+	flopr #(3) StoreALUOP1RegNoBuffer(clk, reset, instrD[11:9], storeALUOp1RegNo);
+	flopr #(3) StoreMemInRegNoBuffer(clk, reset, instrD[8:6], storeMemInRegNo);
 	
 	// Execute Stage Logic
 	mux2 #(16) ALUInput1Selector(Bus1E, DataOut, EXStoreALUOpFw, ALUIn1); 
