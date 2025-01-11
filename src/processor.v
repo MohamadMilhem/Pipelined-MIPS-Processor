@@ -32,14 +32,13 @@ module cpu(input         clk, reset,
   wire RegSrc1, RegDest, MEMWBdata, sign_extend_imm, MEMMemRd, MEMMemWr, EXALUSrc, EXMemDataIn, 
 		WBRegWr, EXRegWr, MEMRegWr, EXMemRd, EXMemWr, DMemWr, killF, PCsrcJType, RRSrc, NOOP, CntInst, ALUInst, BRANCH_OR_FOR;
 		
-  
 controller c(clk, reset,
 			opcode,
 			funcode,
 			Z,stall,
 			EXALUOp,
 			RegSrc2, PCSrc,
-			RegSrc1,RegDest, MEMWBdata, EXALUOp, sign_extend_imm, MemRd, MemWr,  EXALUSrc, EXMemDataIn,
+			RegSrc1,RegDest, MEMWBdata, sign_extend_imm, MemRd, MemWr,  EXALUSrc, EXMemDataIn,
 		  	WBRegWr, EXRegWr, MEMRegWr, EXMemRd, EXMemWr, DMemWr, killF, PCsrcJType, RRSrc, NOOP, CntInst, ALUInst, BRANCH_OR_FOR);
 			  
 			  

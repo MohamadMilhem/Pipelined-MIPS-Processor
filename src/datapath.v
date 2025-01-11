@@ -3,7 +3,7 @@
  * inputs: clk, reset, RegSrc1, RegSrc2, RegDest, MEMWBdata, EXALUOp, PCSrc,
  * sign_extend_imm, MEMSignExtendMemData, EXALUSrc, EXMemDataIn,
  * WBRegWr, EXRegWr, MEMRegWr, DMemWr, EXMemRd, EXMemWr, killF, instrF	
- * output: Z, N, V, mode, stall, instrAddrF, DataInM, ALUOutM, Opcode
+ * output: Z, stall, instrAddrF, DataInM, ALUOutM, Opcode
  */	 
  
  
@@ -48,10 +48,10 @@ module datapath(input  clk, reset,
 	// wires in the writeback stage
 	wire [15:0] WrittenDataW;
 	wire [2:0] RegDestW;
-	
+
 	// hazard detection
 	hazard    h(RegDestE, RegDestM, RegDestW, RegSrc1D, RegSrc2D, storeALUOp1RegNo, storeMemInRegNo,
-	EXRegWr,WBRegWr, MEMRegWr, EXMemRd, DMemWr,EXMemWr, MEMMemRd, MEMMemWr, DMemWr,
+	EXRegWr,WBRegWr, MEMRegWr, EXMemRd, DMemWr,EXMemWr, MEMMemRd, MEMMemWr,
 	ForwardME,
 	ForwardBus1, ForwardBus2, 
 	stall, StoreALUOpFw, StoreDataInFw);
@@ -76,7 +76,7 @@ module datapath(input  clk, reset,
 	assign Opcode = instrD[15:12];
 	assign Function = instrD[2:0];
 	mux2 #(3) regSrc1Selector(instrD[8:6], instrD[11:9], RegSrc1, RegSrc1D);			
-	mux4 #(3) regSrc2Selector(instrD[5:3], instrD[8:6], instrD[11:9], RegSrc2, RegSrc2D);
+	mux4 #(3) regSrc2Selector(instrD[5:3], instrD[8:6], instrD[11:9], 3'bxxx , RegSrc2, RegSrc2D);
 	mux2 #(3) regDestSelector(instrD[11:9], instrD[8:6], RegDest, RegDestD);  
 	
 	regfile rf(clk, WBRegWr, RegSrc1D, RegSrc2D, RegDestW, WrittenDataW, Bus1D, Bus2D);	
@@ -99,26 +99,26 @@ module datapath(input  clk, reset,
 	flopr #(1)  CntrlInstCountBuffer(clk, reset, RRSelectOutput, RROutput);	
 	
 	//Special Purpose Regirsters  
-	adder       CntrlInstCountAddr(CntrlInstCount, CntInst, CntrlInstCountInput); 
-	flopr #(1)  CntrlInstCountBuffer(clk, reset, CntrlInstCountInput, CntrlInstCount);	 
-	
-	adder       AluInstCountAddr(AluInstCount, ALUInst, AluInstCountInput); 
-	flopr #(1)  AluInstCountBuffer(clk, reset, AluInstCountInput, AluInstCount);
-	
-	adder       CyclesCountAddr(CyclesCount, 16'b0000000000000001, CyclesCountInput); 
-	flopr #(1)  CyclesCountBuffer(clk, reset, CyclesCountInput, CyclesCount);
-	
-	adder       NumOfInstExecAddr(NumOfInstExec, ~stall & ~killF , NumOfInstExecInput); 
-	flopr #(1)  NumOfInstExecBuffer(clk, reset, NumOfInstExecInput, NumOfInstExec);
-	
-	adder       StallCyclesCountAddr(StallCyclesCount, NOOP | stall, StallCyclesCountInput); 
-	flopr #(1)  StallCyclesCountBuffer(clk, reset, StallCyclesCountInput, StallCyclesCount);
-	
-	adder       LoadInstCountAddr(LoadInstCount, MEMMemRd, LoadInstCountInput); 
-	flopr #(1)  LoadInstCountBuffer(clk, reset, LoadInstCountInput, LoadInstCount);	 
-	
-	adder       StoreInstCountAddr(StoreInstCount, MEMMemWr, StoreInstCountInput); 
-	flopr #(1)  StoreInstCountBuffer(clk, reset, StoreInstCountInput, StoreInstCount);
+//	adder       CntrlInstCountAddr(CntrlInstCount, CntInst, CntrlInstCountInput); 
+//	flopr #(1)  CntrlInstCountBuffer(clk, reset, CntrlInstCountInput, CntrlInstCount);	 
+//	
+//	adder       AluInstCountAddr(AluInstCount, ALUInst, AluInstCountInput); 
+//	flopr #(1)  AluInstCountBuffer(clk, reset, AluInstCountInput, AluInstCount);
+//	
+//	adder       CyclesCountAddr(CyclesCount, 16'b0000000000000001, CyclesCountInput); 
+//	flopr #(1)  CyclesCountBuffer(clk, reset, CyclesCountInput, CyclesCount);
+//	
+//	adder       NumOfInstExecAddr(NumOfInstExec, ~stall & ~killF , NumOfInstExecInput); 
+//	flopr #(1)  NumOfInstExecBuffer(clk, reset, NumOfInstExecInput, NumOfInstExec);
+//	
+//	adder       StallCyclesCountAddr(StallCyclesCount, NOOP | stall, StallCyclesCountInput); 
+//	flopr #(1)  StallCyclesCountBuffer(clk, reset, StallCyclesCountInput, StallCyclesCount);
+//	
+//	adder       LoadInstCountAddr(LoadInstCount, MEMMemRd, LoadInstCountInput); 
+//	flopr #(1)  LoadInstCountBuffer(clk, reset, LoadInstCountInput, LoadInstCount);	 
+//	
+//	adder       StoreInstCountAddr(StoreInstCount, MEMMemWr, StoreInstCountInput); 
+//	flopr #(1)  StoreInstCountBuffer(clk, reset, StoreInstCountInput, StoreInstCount);
 	
 	// ID/EX Buffers
 	flopr #(16) ImmBufferE(clk, reset, extendedImmediateD, extendedImmediateE);
@@ -163,8 +163,8 @@ endmodule
  */		
  // new definition of the hazard unit module should be also handled when instantaiting it again in the datapath module . 
  // we have added inputs that may have to be added later in the data path module which are the reg nos used in the lw sw hazard . 
-module hazard(input [2:0] Rd2, Rd3, RD4, Rs1, Rs2,storeALUOp1RegNo, storeMemInRegNo   
-			  input ExRegWr,WBRegWr, MemRegWr, ExMemRd, DMemWr,EXMemWr, MEMMemRd, MEMMemWr, DMemWr
+module hazard(input [2:0] Rd2, Rd3, RD4, Rs1, Rs2,storeALUOp1RegNo, storeMemInRegNo,
+			  input ExRegWr,WBRegWr, MemRegWr, ExMemRd, DMemWr,EXMemWr, MEMMemRd, MEMMemWr,
               output reg ForwardMemEx,
               output reg [1:0] ForwardBus1, ForwardBus2,
               output reg stall, StoreALUOpFw, StoreDataInFw);

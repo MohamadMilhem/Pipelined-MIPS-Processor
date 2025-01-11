@@ -11,3 +11,5 @@
 	
 `define JTYPE 4'b0001
 
+`define NOOP 4'b1111
+

@@ -29,12 +29,11 @@ module controller(input        clk, reset,
 	RegSrc1, RegSrc2, RegDest, DWBdata,
 	sign_extend_imm, DRegWr, DALUSrc, DMemRd, DMemWr, NOOP, CntInst, ALUInst, BRANCH_OR_FOR);	
 	
-
 	
 	// WE NEED TO CHECK THE BUFFERS . 
-	alucontrol ac(opcode, DALUOp);
+	alucontrol ac(opcode, functionCode, DALUOp);
 	
-	pccontrol pc(opcode, Z, PCSrc, PCsrcJType, RRSrc, killF); 
+	pccontrol pc(opcode, Z, functionCode, PCSrc, PCsrcJType, RRSrc, killF); 
 	
 	mux2 #(2) ctrlSignalSelector({DRegWr, DMemWr}, 2'b00, stall, {selectedRegWr, selectedMemWr});
 	
@@ -99,7 +98,7 @@ module mainControlUnit(input  [3:0] op, input [2:0]functionCode,
 	  {`JTYPE, `FunCALL}: controls <= 14'bxxx0xxx00x001; // CALL
 	  {`JTYPE, `FunRET}: controls <=  14'bxxx0xxx00x001; // RET
 	  
-	  {`NOOP, 3'bzzz}: control <= 14'bxxx0xxx00x001;
+	  {`NOOP, 3'bzzz}: controls <= 14'bxxx0xxx00x001;
 	  
 	  
 	  default: controls <= 14'b00000000000000; // invalid opcode
@@ -166,12 +165,12 @@ module pccontrol(input	[3:0] IDOpcode,
 	reg branchTaken, forTaken, jump, ret;
 	
 	assign branchTaken = ((IDOpcode == `BEQ) && (Z == 1)) || ((IDOpcode == `BNE) && (Z == 0));	   
-	assign forTaken = (IDOpcode == 'FOR) && (Z == 0);
+	assign forTaken = (IDOpcode == `FOR) && (Z == 0);
 	
-	assign jump = (IDOpcode == `JMP) || (IDOpcode == `CALL); 
+	assign jump = (IDOpcode == `JTYPE) && ((IDFunction == `FunJMP) || (IDFunction == `FunCALL)); 
 	
-	assign RRSrc = (IDOpcode == `CALL);	
-	assign ret = (IDOpcode == `RET);
+	assign RRSrc = (IDOpcode == `JTYPE) && (IDFunction == `FunCALL);	
+	assign ret = (IDOpcode == `JTYPE) && (IDFunction == `FunRET);
 	
 	assign PCsrcJType = jump ? 1'b0 : 1'b1;
 	
@@ -180,7 +179,7 @@ module pccontrol(input	[3:0] IDOpcode,
 	(jump || ret  ?	2'b11 : 2'b00)); 
 	
 	// stall if there is a branch or jump
-	assign killF = (branchTaken) || (IDOpcode == `JMP) || (IDOpcode == `CALL) || (IDOpcode == `RET) || (forTaken);
+	assign killF = (branchTaken) || ((IDOpcode == `JTYPE) && ((IDFunction == `FunJMP) || (IDFunction == `FunCALL) || (IDFunction == `FunRET))) || (forTaken);
 							
 endmodule
 

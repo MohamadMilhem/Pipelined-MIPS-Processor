@@ -11,13 +11,13 @@ module alu(input	[15:0] a, b,
 
 
   always@(*)
-    case(alucont[1:0])
-      2'b000: result <= a & b;
-      2'b001: result <= a + b;
-      2'b010: result <= a - b;
-	  2'b011: result <= a << b;
-	  2'b100: result <= a >> b;
-	  2'b101: result <= a - 1;
+    case(alucont)
+      3'b000: result <= a & b;
+      3'b001: result <= a + b;
+      3'b010: result <= a - b;
+	  3'b011: result <= a << b;
+	  3'b100: result <= a >> b;
+	  3'b101: result <= a - 1;
       default: result <= 16'bxxxxxxxxxxxxxxxx;
 	
     endcase
@@ -97,7 +97,7 @@ endmodule
 /* 
  * description: a two-input subtractor that produces the subtraction result along with zero, negative and overflow flags.	
  * inputs: a, b
- * output: Z, N, V, y
+ * output: Z, y
  */
 module subtractor(input  [15:0] a, b,
 				output	Z, 
