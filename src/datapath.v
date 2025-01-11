@@ -96,29 +96,29 @@ module datapath(input  clk, reset,
 	
 	//RR implementation
 	mux2 #(16) RRSelect(RROutput, instrAddrD,RRSrc, RRSelectOutput);
-	flopr #(1)  CntrlInstCountBuffer(clk, reset, RRSelectOutput, RROutput);	
+	flopr #(16)  RRBuffer(clk, reset, RRSelectOutput, RROutput);	
 	
 	//Special Purpose Regirsters  
-//	adder       CntrlInstCountAddr(CntrlInstCount, CntInst, CntrlInstCountInput); 
-//	flopr #(1)  CntrlInstCountBuffer(clk, reset, CntrlInstCountInput, CntrlInstCount);	 
-//	
-//	adder       AluInstCountAddr(AluInstCount, ALUInst, AluInstCountInput); 
-//	flopr #(1)  AluInstCountBuffer(clk, reset, AluInstCountInput, AluInstCount);
-//	
-//	adder       CyclesCountAddr(CyclesCount, 16'b0000000000000001, CyclesCountInput); 
-//	flopr #(1)  CyclesCountBuffer(clk, reset, CyclesCountInput, CyclesCount);
-//	
-//	adder       NumOfInstExecAddr(NumOfInstExec, ~stall & ~killF , NumOfInstExecInput); 
-//	flopr #(1)  NumOfInstExecBuffer(clk, reset, NumOfInstExecInput, NumOfInstExec);
-//	
-//	adder       StallCyclesCountAddr(StallCyclesCount, NOOP | stall, StallCyclesCountInput); 
-//	flopr #(1)  StallCyclesCountBuffer(clk, reset, StallCyclesCountInput, StallCyclesCount);
-//	
-//	adder       LoadInstCountAddr(LoadInstCount, MEMMemRd, LoadInstCountInput); 
-//	flopr #(1)  LoadInstCountBuffer(clk, reset, LoadInstCountInput, LoadInstCount);	 
-//	
-//	adder       StoreInstCountAddr(StoreInstCount, MEMMemWr, StoreInstCountInput); 
-//	flopr #(1)  StoreInstCountBuffer(clk, reset, StoreInstCountInput, StoreInstCount);
+	adder       CntrlInstCountAddr(CntrlInstCount, CntInst, CntrlInstCountInput); 
+	flopr #(16)  CntrlInstCountBuffer(clk, reset, CntrlInstCountInput, CntrlInstCount);	 
+	
+	adder       AluInstCountAddr(AluInstCount, ALUInst, AluInstCountInput); 
+	flopr #(16)  AluInstCountBuffer(clk, reset, AluInstCountInput, AluInstCount);
+	
+	adder       CyclesCountAddr(CyclesCount, 16'b0000000000000001, CyclesCountInput); 
+	flopr #(16)  CyclesCountBuffer(clk, reset, CyclesCountInput, CyclesCount);
+	
+	adder       NumOfInstExecAddr(NumOfInstExec, ~stall & ~killF , NumOfInstExecInput); 
+	flopr #(16)  NumOfInstExecBuffer(clk, reset, NumOfInstExecInput, NumOfInstExec);
+	
+	adder       StallCyclesCountAddr(StallCyclesCount, NOOP | stall, StallCyclesCountInput); 
+	flopr #(16)  StallCyclesCountBuffer(clk, reset, StallCyclesCountInput, StallCyclesCount);
+	
+	adder       LoadInstCountAddr(LoadInstCount, MEMMemRd, LoadInstCountInput); 
+	flopr #(16)  LoadInstCountBuffer(clk, reset, LoadInstCountInput, LoadInstCount);	 
+	
+	adder       StoreInstCountAddr(StoreInstCount, MEMMemWr, StoreInstCountInput); 
+	flopr #(16)  StoreInstCountBuffer(clk, reset, StoreInstCountInput, StoreInstCount);
 	
 	// ID/EX Buffers
 	flopr #(16) ImmBufferE(clk, reset, extendedImmediateD, extendedImmediateE);
