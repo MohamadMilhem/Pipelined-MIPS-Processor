@@ -48,11 +48,11 @@ module datapath(input  clk, reset,
 	// wires in the writeback stage
 	wire [15:0] WrittenDataW;
 	wire [2:0] RegDestW;
+	
 
 	// hazard detection
 	hazard    h(RegDestE, RegDestM, RegDestW, RegSrc1D, RegSrc2D, storeALUOp1RegNo, storeMemInRegNo,
 	EXRegWr,WBRegWr, MEMRegWr, EXMemRd, DMemWr,EXMemWr, MEMMemRd, MEMMemWr,
-	ForwardME,
 	ForwardBus1, ForwardBus2, 
 	stall, StoreALUOpFw, StoreDataInFw);
 	
@@ -61,7 +61,7 @@ module datapath(input  clk, reset,
 	mux2 #(16) JTypeMux({instrAddrF[15:9], instrD[11:3]}, RROutput, PCsrcJType, JtypeMuxOutput);
 	mux4 PCinput(NoOpMuxOutput,branchAddr, Bus2D, JtypeMuxOutput , PCSrc, PCNext);	 
 	flopenr #(16) PC(clk, reset, ~stall, PCNext, instrAddrF);	// PC register
-	adder       pcadd1(instrAddrF, 16'b0000000000000001, PCPlus1F); // adder to increment PC address
+	adder       pcadd1(PCNext, 16'b0000000000000001, PCPlus1F); // adder to increment PC address
 	mux2 #(16) fetchedInstructionSelector(instrF, 16'b0000000000000000, killF, selectedInstruction); //	instrF is the output of the IMEM  
 	
 	
@@ -96,29 +96,29 @@ module datapath(input  clk, reset,
 	
 	//RR implementation
 	mux2 #(16) RRSelect(RROutput, instrAddrD,RRSrc, RRSelectOutput);
-	flopr #(16)  RRBuffer(clk, reset, RRSelectOutput, RROutput);	
+	flopr #(1)  CntrlInstCountBuffer(clk, reset, RRSelectOutput, RROutput);	
 	
 	//Special Purpose Regirsters  
-	adder       CntrlInstCountAddr(CntrlInstCount, CntInst, CntrlInstCountInput); 
-	flopr #(16)  CntrlInstCountBuffer(clk, reset, CntrlInstCountInput, CntrlInstCount);	 
-	
-	adder       AluInstCountAddr(AluInstCount, ALUInst, AluInstCountInput); 
-	flopr #(16)  AluInstCountBuffer(clk, reset, AluInstCountInput, AluInstCount);
-	
-	adder       CyclesCountAddr(CyclesCount, 16'b0000000000000001, CyclesCountInput); 
-	flopr #(16)  CyclesCountBuffer(clk, reset, CyclesCountInput, CyclesCount);
-	
-	adder       NumOfInstExecAddr(NumOfInstExec, ~stall & ~killF , NumOfInstExecInput); 
-	flopr #(16)  NumOfInstExecBuffer(clk, reset, NumOfInstExecInput, NumOfInstExec);
-	
-	adder       StallCyclesCountAddr(StallCyclesCount, NOOP | stall, StallCyclesCountInput); 
-	flopr #(16)  StallCyclesCountBuffer(clk, reset, StallCyclesCountInput, StallCyclesCount);
-	
-	adder       LoadInstCountAddr(LoadInstCount, MEMMemRd, LoadInstCountInput); 
-	flopr #(16)  LoadInstCountBuffer(clk, reset, LoadInstCountInput, LoadInstCount);	 
-	
-	adder       StoreInstCountAddr(StoreInstCount, MEMMemWr, StoreInstCountInput); 
-	flopr #(16)  StoreInstCountBuffer(clk, reset, StoreInstCountInput, StoreInstCount);
+//	adder       CntrlInstCountAddr(CntrlInstCount, CntInst, CntrlInstCountInput); 
+//	flopr #(1)  CntrlInstCountBuffer(clk, reset, CntrlInstCountInput, CntrlInstCount);	 
+//	
+//	adder       AluInstCountAddr(AluInstCount, ALUInst, AluInstCountInput); 
+//	flopr #(1)  AluInstCountBuffer(clk, reset, AluInstCountInput, AluInstCount);
+//	
+//	adder       CyclesCountAddr(CyclesCount, 16'b0000000000000001, CyclesCountInput); 
+//	flopr #(1)  CyclesCountBuffer(clk, reset, CyclesCountInput, CyclesCount);
+//	
+//	adder       NumOfInstExecAddr(NumOfInstExec, ~stall & ~killF , NumOfInstExecInput); 
+//	flopr #(1)  NumOfInstExecBuffer(clk, reset, NumOfInstExecInput, NumOfInstExec);
+//	
+//	adder       StallCyclesCountAddr(StallCyclesCount, NOOP | stall, StallCyclesCountInput); 
+//	flopr #(1)  StallCyclesCountBuffer(clk, reset, StallCyclesCountInput, StallCyclesCount);
+//	
+//	adder       LoadInstCountAddr(LoadInstCount, MEMMemRd, LoadInstCountInput); 
+//	flopr #(1)  LoadInstCountBuffer(clk, reset, LoadInstCountInput, LoadInstCount);	 
+//	
+//	adder       StoreInstCountAddr(StoreInstCount, MEMMemWr, StoreInstCountInput); 
+//	flopr #(1)  StoreInstCountBuffer(clk, reset, StoreInstCountInput, StoreInstCount);
 	
 	// ID/EX Buffers
 	flopr #(16) ImmBufferE(clk, reset, extendedImmediateD, extendedImmediateE);
@@ -165,7 +165,6 @@ endmodule
  // we have added inputs that may have to be added later in the data path module which are the reg nos used in the lw sw hazard . 
 module hazard(input [2:0] Rd2, Rd3, RD4, Rs1, Rs2,storeALUOp1RegNo, storeMemInRegNo,
 			  input ExRegWr,WBRegWr, MemRegWr, ExMemRd, DMemWr,EXMemWr, MEMMemRd, MEMMemWr,
-              output reg ForwardMemEx,
               output reg [1:0] ForwardBus1, ForwardBus2,
               output reg stall, StoreALUOpFw, StoreDataInFw);
 
@@ -175,8 +174,7 @@ module hazard(input [2:0] Rd2, Rd3, RD4, Rs1, Rs2,storeALUOp1RegNo, storeMemInRe
 			ForwardBus1 = 2'b00; ForwardBus2 = 2'b00;
 			StoreALUOpFw = 1'b0; 
 			StoreDataInFw = 1'b0;
-			stall = 1'b0 ; 
-      		
+      		stall = 1'b0;
 		  
         	if (Rs1 == Rd2 & ExRegWr)
 				ForwardBus1 = 2'b01 ;
@@ -202,9 +200,9 @@ module hazard(input [2:0] Rd2, Rd3, RD4, Rs1, Rs2,storeALUOp1RegNo, storeMemInRe
 			if(storeMemInRegNo == Rd3 & EXMemWr & MEMMemRd)
 				StoreDataInFw = 1'b1;
 			
-			if (ExMemRd & ((Rs1 == Rd3 & MemRegWr) 
-				| (Rs2 == Rd3 & MemRegWr) ) & DMemWr)
+			if ((ExMemRd & ((Rs1 == Rd3 & MemRegWr)) | ((Rs2 == Rd3 & MemRegWr) ) & DMemWr))
 				stall = 1'b1 ;
+			
 				
 		end
 

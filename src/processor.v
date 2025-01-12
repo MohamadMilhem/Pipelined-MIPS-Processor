@@ -30,7 +30,10 @@ module cpu(input         clk, reset,
   wire [2:0] EXALUOp;
   wire [1:0] RegSrc2 , PCSrc;
   wire RegSrc1, RegDest, MEMWBdata, sign_extend_imm, MEMMemRd, MEMMemWr, EXALUSrc, EXMemDataIn, 
-		WBRegWr, EXRegWr, MEMRegWr, EXMemRd, EXMemWr, DMemWr, killF, PCsrcJType, RRSrc, NOOP, CntInst, ALUInst, BRANCH_OR_FOR;
+  WBRegWr, EXRegWr, MEMRegWr, EXMemRd, EXMemWr, DMemWr, killF, PCsrcJType, RRSrc, NOOP, CntInst, ALUInst, BRANCH_OR_FOR; 
+  
+  assign {MemRd, MemWr} = {MEMMemRd,MEMMemWr};  
+
 		
 controller c(clk, reset,
 			opcode,
@@ -38,7 +41,7 @@ controller c(clk, reset,
 			Z,stall,
 			EXALUOp,
 			RegSrc2, PCSrc,
-			RegSrc1,RegDest, MEMWBdata, sign_extend_imm, MemRd, MemWr,  EXALUSrc, EXMemDataIn,
+			RegSrc1,RegDest, MEMWBdata, sign_extend_imm, MEMMemRd, MEMMemWr,  EXALUSrc, EXMemDataIn,
 		  	WBRegWr, EXRegWr, MEMRegWr, EXMemRd, EXMemWr, DMemWr, killF, PCsrcJType, RRSrc, NOOP, CntInst, ALUInst, BRANCH_OR_FOR);
 			  
 			  

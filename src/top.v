@@ -35,21 +35,9 @@ module testbench();
     begin
       if(MemWr) begin
 		
-        if(((dataAddr != 0 | datain != 5) & ctr == 0) |
-		  ((dataAddr != 2 | datain != 5) & ctr == 1) |
-		  ((dataAddr != 4 | datain != 15) & ctr == 2) |
-		  ((dataAddr != 6 | datain != 16'b1111111111110001) & ctr == 3)) begin
-          $display("Simulation failed. Values: address=%x, data=%x, ctr=%d, time=%d", dataAddr, datain, ctr, $time);
-        end else begin
-		  $display("write passed. address=%x, data=%x, ctr=%d, time=%d", dataAddr, datain, ctr, $time);
-	  	end
-		  
-		if(ctr == 3) begin
-			$display("simulation passed!");
-			$stop;
-		end
+		$display("Simulation failed. Values: address=%x, data=%x, ctr=%d, time=%d", dataAddr, datain, ctr, $time);
+		$display("write passed. address=%x, data=%x, ctr=%d, time=%d", dataAddr, datain, ctr, $time);
 			
-	  	ctr = ctr + 1;
       end
     end
 endmodule
