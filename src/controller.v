@@ -10,7 +10,7 @@
 `include "opcodes.v"
 `include "fun_codes.v"
 
-module controller(input        clk, reset,
+module controller(input clk, reset,
 				input  [3:0] opcode,
 				input [2:0] functionCode,
                 input  Z, stall,
@@ -76,35 +76,35 @@ module mainControlUnit(input  [3:0] op, input [2:0]functionCode,
  
 	  
   always @(*)														 
+	begin
+	    casez({op, functionCode})
+	      {`RTYPE, `FunAND}: controls <= 14'b0000100x00x010; // AND
+		  {`RTYPE, `FunADD}: controls <= 14'b0000100x00x010; // ADD
+		  {`RTYPE, `FunSUB}: controls <= 14'b0000100x00x010; // SUB 
+		  {`RTYPE, `FunSLL}: controls <= 14'b0000100x00x010; // SLL 
+		  {`RTYPE, `FunSRL}: controls <= 14'b0000100x00x010; // SRL
+		  
+		  
+		  {`ANDI,  3'bzzz}: controls <=  14'b1xx1110000x010; // ANDI
+		  {`ADDI,  3'bzzz}: controls <=  14'b1xx1110100x010; // ADDI
+		  {`LW,    3'bzzz}: controls <=  14'b1xx1111110x000; // LW
+		  {`SW,    3'bzzz}: controls <=  14'b1xxx01x101x000; // SW
+		  {`BEQ,   3'bzzz}: controls <=  14'b101x00x1000001; // BEQ
+		  {`BNE,   3'bzzz}: controls <=  14'b101x00x1000001; // BNE
+		  {`FOR,   3'bzzz}: controls <=  14'b01011x0x001001; // FOR  
+		  
+		  
+		  {`JTYPE, `FunJMP}: controls <=  14'bxxx0xxx00x001; // JMP
+		  {`JTYPE, `FunCALL}: controls <= 14'bxxx0xxx00x001; // CALL
+		  {`JTYPE, `FunRET}: controls <=  14'bxxx0xxx00x001; // RET
+		  
+		  {`NOOP, 3'bzzz}: controls <= 14'bxxx0xxx00x001;
+		  
+		  
+		  default: controls <= 14'b00000000000000; // invalid opcode 
+	    endcase
+	end															
 	
-    casez({op, functionCode})
-      {`RTYPE, `FunAND}: controls <= 14'b0000100x00x010; // AND
-	  {`RTYPE, `FunADD}: controls <= 14'b0000100x00x010; // ADD
-	  {`RTYPE, `FunSUB}: controls <= 14'b0000100x00x010; // SUB 
-	  {`RTYPE, `FunSLL}: controls <= 14'b0000100x00x010; // SLL 
-	  {`RTYPE, `FunSRL}: controls <= 14'b0000100x00x010; // SRL
-	  
-	  
-	  {`ANDI,  3'bzzz}: controls <=  14'b1xx1110000x010; // ANDI
-	  {`ADDI,  3'bzzz}: controls <=  14'b1xx1110100x010; // ADDI
-	  {`LW,    3'bzzz}: controls <=  14'b1xx1111110x000; // LW
-	  {`SW,    3'bzzz}: controls <=  14'b1xxx01x101x000; // SW
-	  {`BEQ,   3'bzzz}: controls <=  14'b101x00x1000001; // BEQ
-	  {`BNE,   3'bzzz}: controls <=  14'b101x00x1000001; // BNE
-	  {`FOR,   3'bzzz}: controls <=  14'b01011x0x001001; // FOR  
-	  
-	  
-	  {`JTYPE, `FunJMP}: controls <=  14'bxxx0xxx00x001; // JMP
-	  {`JTYPE, `FunCALL}: controls <= 14'bxxx0xxx00x001; // CALL
-	  {`JTYPE, `FunRET}: controls <=  14'bxxx0xxx00x001; // RET
-	  
-	  {`NOOP, 3'bzzz}: controls <= 14'bxxx0xxx00x001;
-	  
-	  
-	  default: controls <= 14'b00000000000000; // invalid opcode
-	  
-      
-    endcase
 endmodule
 
 /* 

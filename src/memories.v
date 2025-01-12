@@ -9,13 +9,13 @@ module dmem(
 			input [15:0] DataIn,
             	output reg [15:0] Dataout );
 
-	reg  [15:0] RAM[31:0];
+	reg  [15:0] DRAM[31:0];
 
 	// Initialize RAM
     integer i;
     initial begin
         for (i = 0; i < 32; i = i + 1)
-            RAM[i] = 16'h0000;
+            DRAM[i] = i;
     end
 	
 	
@@ -23,13 +23,13 @@ module dmem(
     	
 		if (MemWr)
 			begin
-      			RAM[address[4:0]] <= DataIn[15:0] ;
+      			DRAM[address[4:0]] <= DataIn[15:0] ;
 			end
 	
 	always @(posedge MemRd)
 		
 		if (MemRd)
-			Dataout <= RAM[address[4:0]]; 
+			Dataout <= DRAM[address[4:0]]; 
 			
 endmodule
 
@@ -43,14 +43,14 @@ endmodule
 module imem(input  [15:0] PC,
             output reg [15:0] instruction );
 
-	reg  [15:0] RAM[63:0] ;
+	reg  [15:0] IRAM[63:0] ;
 
  	initial
     		begin
-      		$readmemh("memfile.dat",RAM) ;
+      		$readmemh("memfile.dat",IRAM) ;
     		end
 	
 	always@(*)
- 	 	instruction <=  RAM[PC];
+ 	 	instruction <=  IRAM[PC];
   
 endmodule
