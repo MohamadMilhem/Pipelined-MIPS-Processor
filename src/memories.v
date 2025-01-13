@@ -37,10 +37,11 @@ endmodule
 /* 
  * description: this module acts as the instruction memory that stores the instruction sequence
  * to be executed on the processor	
- * inputs: PC
+ * inputs: clk, PC
  * output: instruction
  */
-module imem(input  [15:0] PC,
+module imem(
+			input  [15:0] PC,
             output reg [15:0] instruction );
 
 	reg  [15:0] IRAM[63:0] ;

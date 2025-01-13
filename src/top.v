@@ -61,13 +61,7 @@ module top(input         clk, reset,
   datain, instrAddr, dataAddr);
   
   imem imem(instrAddr, instruction);
-  
-  /*
- 	 		input clk, MemRd, MemWr,
-			input [15:0] address,
-			input [15:0] DataIn,
-            output [15:0] Dataout 
-  */
+ 
   dmem dmem(clk, MemRd, MemWr, dataAddr, datain, dataout);
 
 endmodule
