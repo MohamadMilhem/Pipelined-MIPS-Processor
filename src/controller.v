@@ -40,15 +40,15 @@ module controller(input clk, reset,
 	// ID/EX Buffers
 	flopr #(4) EX_IDEXBuffer(clk, reset, {DALUSrc, DALUOp}, {EXALUSrc, EXALUOp});
 	flopr #(3) MEM_IDEXBuffer(clk, reset, {DMemRd, selectedMemWr, DWBdata}, {EXMemRd, EXMemWr, EXWBdata});
-	flopr #(1) WB_IDEXBuffer(clk, reset, {selectedRegWr}, {EXRegWr});  
+	flopr #(1) WB_IDEXBuffer(clk, reset, selectedRegWr, EXRegWr);  
 	
 	
 	// EX/MEM Buffers
 	flopr #(3) MEM_EXMEMBuffer(clk, reset, {EXMemRd, EXMemWr, EXWBdata}, {MEMMemRd, MEMMemWr, MEMWBdata});
-	flopr #(1) WB_EXMEMBuffer(clk, reset, {EXRegWr}, {MEMRegWr});
+	flopr #(1) WB_EXMEMBuffer(clk, reset, EXRegWr, MEMRegWr);
 	
 	// MEM/WB Buffers
-	flopr #(1) WB_MEMWBBuffer(clk, reset, {MEMRegWr}, {WBRegWr});
+	flopr #(1) WB_MEMWBBuffer(clk, reset, MEMRegWr, WBRegWr);
 				 
 endmodule
 
@@ -77,13 +77,8 @@ module mainControlUnit(input  [3:0] op, input [2:0]functionCode,
 	  
   always @(*)														 
 	begin
-	    casez({op, functionCode})
-	      {`RTYPE, `FunAND}: controls <= 14'b0000100x00x010; // AND
-		  {`RTYPE, `FunADD}: controls <= 14'b0000100x00x010; // ADD
-		  {`RTYPE, `FunSUB}: controls <= 14'b0000100x00x010; // SUB 
-		  {`RTYPE, `FunSLL}: controls <= 14'b0000100x00x010; // SLL 
-		  {`RTYPE, `FunSRL}: controls <= 14'b0000100x00x010; // SRL
-		  
+	    casez({op, functionCode}) 
+		  {`NOOP, 3'bzzz}: controls <= 14'bxxx0xxx00x100; // NOOP  
 		  
 		  {`ANDI,  3'bzzz}: controls <=  14'b1xx1110000x010; // ANDI
 		  {`ADDI,  3'bzzz}: controls <=  14'b1xx1110100x010; // ADDI
@@ -93,15 +88,20 @@ module mainControlUnit(input  [3:0] op, input [2:0]functionCode,
 		  {`BNE,   3'bzzz}: controls <=  14'b101x00x1000001; // BNE
 		  {`FOR,   3'bzzz}: controls <=  14'b01011x0x001001; // FOR  
 		  
+	      {`RTYPE, `FunAND}: controls <= 14'b0000100x00x010; // AND
+		  {`RTYPE, `FunADD}: controls <= 14'b0000100x00x010; // ADD
+		  {`RTYPE, `FunSUB}: controls <= 14'b0000100x00x010; // SUB 
+		  {`RTYPE, `FunSLL}: controls <= 14'b0000100x00x010; // SLL 
+		  {`RTYPE, `FunSRL}: controls <= 14'b0000100x00x010; // SRL		  
 		  
 		  {`JTYPE, `FunJMP}: controls <=  14'bxxx0xxx00x001; // JMP
 		  {`JTYPE, `FunCALL}: controls <= 14'bxxx0xxx00x001; // CALL
 		  {`JTYPE, `FunRET}: controls <=  14'bxxx0xxx00x001; // RET
 		  
-		  {`NOOP, 3'bzzz}: controls <= 14'bxxx0xxx00x001;
+
 		  
 		  
-		  default: controls <= 14'b00000000000000; // invalid opcode 
+		  default: controls <= 14'bxxx0xxx00x000; // invalid opcode 
 	    endcase
 	end															
 	

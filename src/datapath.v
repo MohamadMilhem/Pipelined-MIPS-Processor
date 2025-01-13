@@ -27,7 +27,7 @@ module datapath(input  clk, reset,
 	wire [15:0] PCNext;
 	// wires in the decode stage
 	wire [1:0] ForwardBus1, ForwardBus2;
-	wire ForwardME, StoreALUOpFw, StoreDataInFw;
+	wire StoreALUOpFw, StoreDataInFw;
 	wire [2:0] RegSrc1D, RegSrc2D, RegDestD;
 	wire [15:0] Bus1D, Bus2D, SubOut, instrAddrD, PCPlus1D, RROutput,RRSelectOutput, BranchOrForMuxOutput;
 	wire [15:0] ForwardedData1, ForwardedData2, extendedImmediateD, extendedImmediateS, instrD;	
@@ -62,12 +62,12 @@ module datapath(input  clk, reset,
 	mux4 PCinput(NoOpMuxOutput,branchAddr, Bus2D, JtypeMuxOutput , PCSrc, PCNext);	 
 	flopenr #(16) PC(clk, reset, ~stall, PCNext, instrAddrF);	// PC register
 	adder       pcadd1(PCNext, 16'b0000000000000001, PCPlus1F); // adder to increment PC address
-	mux2 #(16) fetchedInstructionSelector(instrF, 16'b0000000000000000, killF, selectedInstruction); //	instrF is the output of the IMEM  
+	mux2 #(16) fetchedInstructionSelector(instrF, 16'b1111111111111111, killF, selectedInstruction); //	instrF is the output of the IMEM  
 	
 	
 	// IF/ID Buffers
 	flopenr #(16) PCBufferF(clk, reset, ~stall, instrAddrF, instrAddrD);	// PC Buffer
-	flopenr #(16) PCPlusBufferF(clk, reset, ~stall, PCPlus1F, PCPlus1D);	// PC+2 Buffer
+	flopenr #(16) PCPlusBufferF(clk, reset, ~stall, PCPlus1F, PCPlus1D);	// PC+1 Buffer
 	flopenr #(16) FetchedInstrBufferF(clk, reset, ~stall, selectedInstruction, instrD);	// Fetched Instruction Buffer	
 	
 	
@@ -96,37 +96,35 @@ module datapath(input  clk, reset,
 	
 	//RR implementation
 	mux2 #(16) RRSelect(RROutput, instrAddrD,RRSrc, RRSelectOutput);
-	flopr #(1)  CntrlInstCountBuffer(clk, reset, RRSelectOutput, RROutput);	
+   	flopr #(16)  RR(clk, reset, RRSelectOutput, RROutput);
 	
 	//Special Purpose Regirsters  
-//	adder       CntrlInstCountAddr(CntrlInstCount, CntInst, CntrlInstCountInput); 
-//	flopr #(1)  CntrlInstCountBuffer(clk, reset, CntrlInstCountInput, CntrlInstCount);	 
-//	
-//	adder       AluInstCountAddr(AluInstCount, ALUInst, AluInstCountInput); 
-//	flopr #(1)  AluInstCountBuffer(clk, reset, AluInstCountInput, AluInstCount);
-//	
-//	adder       CyclesCountAddr(CyclesCount, 16'b0000000000000001, CyclesCountInput); 
-//	flopr #(1)  CyclesCountBuffer(clk, reset, CyclesCountInput, CyclesCount);
-//	
-//	adder       NumOfInstExecAddr(NumOfInstExec, ~stall & ~killF , NumOfInstExecInput); 
-//	flopr #(1)  NumOfInstExecBuffer(clk, reset, NumOfInstExecInput, NumOfInstExec);
-//	
-//	adder       StallCyclesCountAddr(StallCyclesCount, NOOP | stall, StallCyclesCountInput); 
-//	flopr #(1)  StallCyclesCountBuffer(clk, reset, StallCyclesCountInput, StallCyclesCount);
-//	
-//	adder       LoadInstCountAddr(LoadInstCount, MEMMemRd, LoadInstCountInput); 
-//	flopr #(1)  LoadInstCountBuffer(clk, reset, LoadInstCountInput, LoadInstCount);	 
-//	
-//	adder       StoreInstCountAddr(StoreInstCount, MEMMemWr, StoreInstCountInput); 
-//	flopr #(1)  StoreInstCountBuffer(clk, reset, StoreInstCountInput, StoreInstCount);
+	adder       CntrlInstCountAddr(CntrlInstCount, {15'b000000000000000, CntInst}, CntrlInstCountInput); 
+	flopr #(16)  CntrlInstCountBuffer(clk, reset, CntrlInstCountInput, CntrlInstCount);	 
+	
+	adder       AluInstCountAddr(AluInstCount, {15'b000000000000000, ALUInst} , AluInstCountInput); 
+	flopr #(16)  AluInstCountBuffer(clk, reset, AluInstCountInput, AluInstCount);
+	
+	adder       CyclesCountAddr(CyclesCount, 16'b0000000000000001, CyclesCountInput); 
+	flopr #(16)  CyclesCountBuffer(clk, reset, CyclesCountInput, CyclesCount);
+	
+	adder       NumOfInstExecAddr(NumOfInstExec, {15'b000000000000000, ~stall & ~killF} , NumOfInstExecInput); 
+	flopr #(16)  NumOfInstExecBuffer(clk, reset, NumOfInstExecInput, NumOfInstExec);
+	
+	adder       StallCyclesCountAddr(StallCyclesCount, {15'b000000000000000, NOOP | stall}, StallCyclesCountInput); 
+	flopr #(16)  StallCyclesCountBuffer(clk, reset, StallCyclesCountInput, StallCyclesCount);
+	
+	adder       LoadInstCountAddr(LoadInstCount, {15'b000000000000000, MEMMemRd}, LoadInstCountInput); 
+	flopr #(16)  LoadInstCountBuffer(clk, reset, LoadInstCountInput, LoadInstCount);	 
+	
+	adder       StoreInstCountAddr(StoreInstCount, {15'b000000000000000, MEMMemWr}, StoreInstCountInput); 
+	flopr #(16)  StoreInstCountBuffer(clk, reset, StoreInstCountInput, StoreInstCount);
 	
 	// ID/EX Buffers
 	flopr #(16) ImmBufferE(clk, reset, extendedImmediateD, extendedImmediateE);
-	flopr #(16) PCBufferE(clk, reset, instrAddrD, instrAddrE);
 	flopr #(16) Bus1BufferE(clk, reset, ForwardedData1, Bus1E);
 	flopr #(16) Bus2BufferE(clk, reset, ForwardedData2, Bus2E);
 	flopr #(3) RdE(clk, reset, RegDestD, RegDestE);
-	flopr #(16) PCPlusBufferE(clk, reset, PCPlus1D, PCPlus1E);
 	flopr #(1)  StoreDataInFwBuffer(clk, reset, StoreDataInFw, EXStoreDataInFw);
 	flopr #(1)  StoreALUOpFwBuffer(clk, reset, StoreALUOpFw, EXStoreALUOpFw);
 	flopr #(3) StoreALUOP1RegNoBuffer(clk, reset, instrD[11:9], storeALUOp1RegNo);
@@ -200,7 +198,7 @@ module hazard(input [2:0] Rd2, Rd3, RD4, Rs1, Rs2,storeALUOp1RegNo, storeMemInRe
 			if(storeMemInRegNo == Rd3 & EXMemWr & MEMMemRd)
 				StoreDataInFw = 1'b1;
 			
-			if ((ExMemRd & ((Rs1 == Rd3 & MemRegWr)) | ((Rs2 == Rd3 & MemRegWr) ) & DMemWr))
+			if ((ExMemRd & ((Rs1 == Rd2 & ExRegWr)) | ((Rs2 == Rd2 & ExRegWr) ) & (DMemWr == 0)))
 				stall = 1'b1 ;
 			
 				
